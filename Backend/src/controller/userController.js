@@ -1,0 +1,72 @@
+import User from "../model/userModel.js";
+import jwt from "jsonwebtoken";
+
+export const createUser = async (req,res) => {
+    try {
+        let { name,
+                email,
+                age,
+                password } = req.body;
+
+        if(!name?.trim() || !email?.trim() || !password?.trim() ){
+            return res.status(409).json({message:"All fields are required"})
+        }
+        
+        email = email.trim().toLowerCase();
+
+        const existingEmail = await User.findOne({email})
+        if (existingEmail) {
+            return res.status(409).json({message:"Email already exist"})
+        }
+
+        const newUser = new User({name:name, email:email, age:age, password:password, role:"user"})
+            
+        await newUser.save();
+
+        res.status(201).json({
+            message: "User registered successfully"
+        })
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({message:"Server erros"})
+    }
+}
+
+export const validateUser = async (req,res) => {
+    try {
+        let { email, password } = req.body;
+        email = email.trim().toLowerCase();
+
+        if (!email?.trim() || !password?.trim()) {
+            return res.status(409).json({
+                message: "Email and password are required"
+            });
+        }
+
+        const user = await User.findOne({email});
+
+        if(!user) return res.status(401).json({
+            message:"Invalid email"
+        });
+
+        const isMatch = await user.matchPassword(password);
+        if(!isMatch) return res.status(401).json({
+            message:"Invalid password"
+        });
+        
+        const token = jwt.sign({id: user._id, role: user.role}, 
+            process.env.JWT_SECRET_KEY,
+            {expiresIn: "1d"});
+
+        res.status(200).json({
+            token,
+            role: user.role, 
+            email: user.email
+        });
+        
+
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+}
