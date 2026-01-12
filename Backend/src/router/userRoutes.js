@@ -4,7 +4,7 @@ import {createUser, validateUser} from '../controller/userController.js'
 
 const router = express.Router();
 
-router.post("/", createUser);
-router.get("/:id", validateUser);
+router.post("/register", createUser);
+router.post("/login/:id", validateUser);
 
 export default router
