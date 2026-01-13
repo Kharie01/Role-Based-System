@@ -59,14 +59,41 @@ export const validateUser = async (req,res) => {
             process.env.JWT_SECRET_KEY,
             {expiresIn: "1d"});
 
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "strict",
+            maxAge: 24 * 60 * 60 * 1000
+        })
+
         res.status(200).json({
-            token,
-            role: user.role, 
-            email: user.email
+            message: "Login successful",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
         });
         
 
     } catch (error) {
         res.status(500).json({ message: "Server error" });
+    }
+}
+
+export const getProfile = async (req, res) => {
+    try {
+        
+    } catch (error) {
+        
+    }
+}
+
+export const getAllUser = async (req, res) => {
+    try {
+        
+    } catch (error) {
+        
     }
 }
