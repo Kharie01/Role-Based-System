@@ -1,5 +1,6 @@
 import User from "../model/userModel.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 export const createUser = async (req,res) => {
     try {
@@ -84,9 +85,37 @@ export const validateUser = async (req,res) => {
 
 export const getProfile = async (req, res) => {
     try {
-        
+
+        if(!req.user || !req.user.id){
+            return res.status(402).json({
+                success: false,
+                message: "Unauthorized"
+            })
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user ID"
+            });
+        }
+
+        const userId = req.user.id;
+
+        const user = await User.findById(userId).select("-password")
+
+        if(!user){
+            return res.status(404).json({message:"User not found"})
+        }
+
+        res.json(user);
     } catch (error) {
-        
+        console.error("GET PROFILE ERROR:", error.message);
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal server error"
+        });
     }
 }
 
