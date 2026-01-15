@@ -121,8 +121,25 @@ export const getProfile = async (req, res) => {
 
 export const getAllUser = async (req, res) => {
     try {
-        
+        if(req.user.role !== "Admin"){
+            return res.status(403).json({
+                success: "false",
+                message: "Access denied"
+            })
+        }
+
+        const users = await User.findOne({})
+        .select("-password -__v")
+        .lean();
+
+        res.status(200).json({
+            success: "true",
+            count: users.length(),
+            users,
+        })
+
     } catch (error) {
-        
+        console.error("GET ALL USER ERROR: ", error);
+        res.status(500).json({message:"Server error"})
     }
 }
