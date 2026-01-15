@@ -3,7 +3,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from '../src/config/db.js';
-
+import { globalLimiter } from './middleware/rateLimiting.js';
 import userRoutes from "../src/router/userRoutes.js"
 
 dotenv.config()
@@ -18,7 +18,7 @@ app.use(cors({
 }))
 const PORT = 5100 || process.env.PORT;
 
-app.use("/api/users", userRoutes)
+app.use("/api/users", globalLimiter, userRoutes)
 
 connectDB().then(() => {
     app.listen(PORT, () => {
