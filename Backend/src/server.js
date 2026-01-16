@@ -5,7 +5,7 @@ import cors from "cors";
 import connectDB from '../src/config/db.js';
 import { globalLimiter } from './middleware/rateLimiting.js';
 import userRoutes from "../src/router/userRoutes.js"
-
+import errorHandler from './middleware/errorMiddleware.js';
 dotenv.config()
 
 const app = express();
@@ -19,7 +19,7 @@ app.use(cors({
 const PORT = 5100 || process.env.PORT;
 
 app.use("/api/users", globalLimiter, userRoutes)
-
+app.use(errorHandler)
 connectDB().then(() => {
     app.listen(PORT, () => {
         console.log(`Server running on http://localhost:${PORT}`);
