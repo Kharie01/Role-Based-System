@@ -2,37 +2,40 @@ import User from "../model/userModel.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
-export const createUser = async (req,res) => {
-    try {
-        let { name,
-                email,
-                age,
-                password } = req.body;
+import catchAsync from "../utils/catchAsync.js";
+import AppError from "../utils/appError.js"; 
 
-        if(!name?.trim() || !email?.trim() || !password?.trim() ){
-            return res.status(409).json({message:"All fields are required"})
-        }
-        
-        email = email.trim().toLowerCase();
+export const createUser = catchAsync (async (req,res) => {
+    let { name,
+            email,
+            age,
+            password } = req.body;
 
-        const existingEmail = await User.findOne({email})
-        if (existingEmail) {
-            return res.status(409).json({message:"Email already exist"})
-        }
-
-        const newUser = new User({name:name, email:email, age:age, password:password, role:"user"})
-            
-        await newUser.save();
-
-        res.status(201).json({
-            message: "User registered successfully"
-        })
-
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({message:"Server erros"})
+    if(!name?.trim() || !email?.trim() || !password?.trim() ){
+        throw new AppError("All field are required", 409)
     }
-}
+
+    email = email.trim().toLowerCase();
+
+    const existingEmail = await User.findOne({email})
+    if (existingEmail) {
+        throw new AppError("Email already exist", 409)
+    }
+
+    const newUser = new User({
+        name:name, 
+        email:email, 
+        age:age, 
+        password:password, 
+        role:"user"
+    });
+        
+    await newUser.save();
+
+    res.status(201).json({
+        message: "User registered successfully"
+    })
+});
 
 export const validateUser = async (req,res) => {
     try {
@@ -45,13 +48,14 @@ export const validateUser = async (req,res) => {
             });
         }
 
-        const user = await User.findOne({email});
+        const user = await User.findOne({email}).select("+password");
 
         if(!user) return res.status(401).json({
             message:"Invalid email"
         });
 
-        const isMatch = await user.matchPassword(password);
+        const isMatch = await user.matchPassword(password.trim());
+        console.log("DB hashed password:", user.password); console.log("Entered password:", password);                                                                      
         if(!isMatch) return res.status(401).json({
             message:"Invalid password"
         });
@@ -87,7 +91,7 @@ export const getProfile = async (req, res) => {
     try {
 
         if(!req.user || !req.user.id){
-            return res.status(402).json({
+            return res.status(401).json({
                 success: false,
                 message: "Unauthorized"
             })
@@ -121,20 +125,20 @@ export const getProfile = async (req, res) => {
 
 export const getAllUser = async (req, res) => {
     try {
-        if(req.user.role !== "Admin"){
+        if(req.user.role !== "admin"){
             return res.status(403).json({
                 success: "false",
                 message: "Access denied"
             })
         }
 
-        const users = await User.findOne({})
+        const users = await User.find({})
         .select("-password -__v")
         .lean();
 
         res.status(200).json({
             success: "true",
-            count: users.length(),
+            count: users.length,
             users,
         })
 
