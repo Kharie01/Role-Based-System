@@ -1,11 +1,12 @@
+import AppError from "../utils/appError.js"; 
+
 export const isAdmin = (req, res, next) => {
     if(!req.user){
-        return res.status(401).json({ message: "Not authenticated" });
+        throw new AppError("Not authenticated", 401)
     }
 
     if (req.user.role !== "admin") {
-    return res.status(403).json({ message: "Access denied" });
+        throw new AppError("Access denied", 403)
     }
-
     next();
 }

@@ -37,113 +37,75 @@ export const createUser = catchAsync (async (req,res) => {
     })
 });
 
-export const validateUser = async (req,res) => {
-    try {
-        let { email, password } = req.body;
-        email = email.trim().toLowerCase();
+export const validateUser = catchAsync(async (req,res) => {
+    let { email, password } = req.body;
+    email = email.trim().toLowerCase();
 
-        if (!email?.trim() || !password?.trim()) {
-            return res.status(409).json({
-                message: "Email and password are required"
-            });
-        }
-
-        const user = await User.findOne({email}).select("+password");
-
-        if(!user) return res.status(401).json({
-            message:"Invalid email"
-        });
-
-        const isMatch = await user.matchPassword(password.trim());
-        console.log("DB hashed password:", user.password); console.log("Entered password:", password);                                                                      
-        if(!isMatch) return res.status(401).json({
-            message:"Invalid password"
-        });
-        
-        const token = jwt.sign({id: user._id, role: user.role}, 
-            process.env.JWT_SECRET_KEY,
-            {expiresIn: "1d"});
-
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 24 * 60 * 60 * 1000
-        })
-
-        res.status(200).json({
-            message: "Login successful",
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
-        });
-        
-
-    } catch (error) {
-        res.status(500).json({ message: "Server error" });
+    if (!email?.trim() || !password?.trim()) {
+        throw new AppError("Email and password are required", 409)
     }
-}
 
-export const getProfile = async (req, res) => {
-    try {
+    const user = await User.findOne({email}).select("+password");
 
-        if(!req.user || !req.user.id){
-            return res.status(401).json({
-                success: false,
-                message: "Unauthorized"
-            })
+    if(!user) throw new AppError("Invalid Email", 401);
+
+    const isMatch = await user.matchPassword(password.trim());
+
+    if(!isMatch) throw new AppError("Invalid Password", 401)
+    
+    const token = jwt.sign({id: user._id, role: user.role}, 
+        process.env.JWT_SECRET_KEY,
+        {expiresIn: "1d"});
+
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 24 * 60 * 60 * 1000
+    })
+
+    res.status(200).json({
+        message: "Login successful",
+        user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role
         }
+    });
+})
 
-        if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid user ID"
-            });
-        }
-
-        const userId = req.user.id;
-
-        const user = await User.findById(userId).select("-password")
-
-        if(!user){
-            return res.status(404).json({message:"User not found"})
-        }
-
-        res.json(user);
-    } catch (error) {
-        console.error("GET PROFILE ERROR:", error.message);
-
-        return res.status(500).json({
-            success: false,
-            message: "Internal server error"
-        });
+export const getProfile = catchAsync ( async (req, res) => {
+    if(!req.user || !req.user.id){
+        throw new AppError("Unauthorized", 401)
     }
-}
 
-export const getAllUser = async (req, res) => {
-    try {
-        if(req.user.role !== "admin"){
-            return res.status(403).json({
-                success: "false",
-                message: "Access denied"
-            })
-        }
-
-        const users = await User.find({})
-        .select("-password -__v")
-        .lean();
-
-        res.status(200).json({
-            success: "true",
-            count: users.length,
-            users,
-        })
-
-    } catch (error) {
-        console.error("GET ALL USER ERROR: ", error);
-        res.status(500).json({message:"Server error"})
+    if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
+        throw new AppError("Invalid user ID", 400);
     }
-}
+
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select("-password")
+
+    if(!user){
+        throw new AppError("User not found", 404);
+    }
+    res.json(user);
+})
+
+export const getAllUser = catchAsync ( async (req, res) => {
+    if(req.user.role !== "admin"){
+        throw new AppError("Access denied", 403)
+    }
+
+    const users = await User.find({})
+    .select("-password -__v")
+    .lean();
+
+    res.status(200).json({
+        success: "true",
+        count: users.length,
+        users,
+    })
+})
