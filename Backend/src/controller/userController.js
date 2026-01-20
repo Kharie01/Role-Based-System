@@ -1,4 +1,4 @@
-import User from "../model/userModel.js";
+import {logInUserServices, createUserServices, getProfileService, getAllUserService} from "../services/authServices.js"
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
@@ -11,26 +11,7 @@ export const createUser = catchAsync (async (req,res) => {
             age,
             password } = req.body;
 
-    if(!name?.trim() || !email?.trim() || !password?.trim() ){
-        throw new AppError("All field are required", 409)
-    }
-
-    email = email.trim().toLowerCase();
-
-    const existingEmail = await User.findOne({email})
-    if (existingEmail) {
-        throw new AppError("Email already exist", 409)
-    }
-
-    const newUser = new User({
-        name:name, 
-        email:email, 
-        age:age, 
-        password:password, 
-        role:"user"
-    });
-        
-    await newUser.save();
+    await createUserServices(name,email,age,password);
 
     res.status(201).json({
         message: "User registered successfully"
@@ -41,17 +22,7 @@ export const validateUser = catchAsync(async (req,res) => {
     let { email, password } = req.body;
     email = email.trim().toLowerCase();
 
-    if (!email?.trim() || !password?.trim()) {
-        throw new AppError("Email and password are required", 409)
-    }
-
-    const user = await User.findOne({email}).select("+password");
-
-    if(!user) throw new AppError("Invalid Email", 401);
-
-    const isMatch = await user.matchPassword(password.trim());
-
-    if(!isMatch) throw new AppError("Invalid Password", 401)
+    const user = await logInUserServices(email,password);
     
     const token = jwt.sign({id: user._id, role: user.role}, 
         process.env.JWT_SECRET_KEY,
@@ -76,33 +47,12 @@ export const validateUser = catchAsync(async (req,res) => {
 })
 
 export const getProfile = catchAsync ( async (req, res) => {
-    if(!req.user || !req.user.id){
-        throw new AppError("Unauthorized", 401)
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(req.user.id)) {
-        throw new AppError("Invalid user ID", 400);
-    }
-
-    const userId = req.user.id;
-
-    const user = await User.findById(userId).select("-password")
-
-    if(!user){
-        throw new AppError("User not found", 404);
-    }
+    const user = await getProfileService(req.user.id);
     res.json(user);
 })
 
 export const getAllUser = catchAsync ( async (req, res) => {
-    if(req.user.role !== "admin"){
-        throw new AppError("Access denied", 403)
-    }
-
-    const users = await User.find({})
-    .select("-password -__v")
-    .lean();
-
+    await getAllUserService(req.user.role)
     res.status(200).json({
         success: "true",
         count: users.length,
