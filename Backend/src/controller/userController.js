@@ -1,9 +1,9 @@
-import {logInUserServices, createUserServices, getProfileService, getAllUserService} from "../services/authServices.js"
+import {logInUserServices, createUserServices} from "../services/authServices.js"
+import {getProfileService, getAllUserService} from "../services/userServices.js"
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 
 import catchAsync from "../utils/catchAsync.js";
-import AppError from "../utils/appError.js"; 
+
 
 export const createUser = catchAsync (async (req,res) => {
     let { name,
@@ -52,7 +52,8 @@ export const getProfile = catchAsync ( async (req, res) => {
 })
 
 export const getAllUser = catchAsync ( async (req, res) => {
-    await getAllUserService(req.user.role)
+    const users = await getAllUserService(req.user.role)
+
     res.status(200).json({
         success: "true",
         count: users.length,

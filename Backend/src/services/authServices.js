@@ -3,17 +3,17 @@ import AppError from "../utils/appError.js";
 import mongoose from "mongoose";
 
 
-export const createUserServices = async(name, email,age,password,role) => {
+export const createUserServices = async(name, email,age,password) => {
 
     if(!name?.trim() || !email?.trim() || !password?.trim() ){
-        throw new AppError("All field are required", 409)
+        throw new AppError("All field are required", 400)
     }
 
     email = email.trim().toLowerCase();
 
     const existingEmail = await User.findOne({email})
     if (existingEmail) {
-        throw new AppError("Email already exist", 409)
+        throw new AppError("Email already exist", 400)
     }
 
     const newUser = new User({
@@ -52,7 +52,7 @@ export const getProfileService = async (userId) => {
         throw new AppError("Unauthorized", 401)
     }
 
-    if (!mongoose.Types.ObjectId.isValid(user)) {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
         throw new AppError("Invalid user ID", 400);
     }
 
