@@ -1,7 +1,7 @@
 ﻿🚀 FULL PROJECT PLAN: “Full-Stack Auth + Roles System”
 1️⃣ PROJECT OVERVIEW
 
-Goal: Build a system where users can register/login, admins can manage users, and all routes are properly protected with JWT & roles. Deploy it fully.
+Goal: Build a system where users can register/login, admins can manage users, and all routes are properly protected with JWT & roles. Deploy it fully...
 
 Why it matters:
 
@@ -110,3 +110,4 @@ Frontend loading/error states
 
 
 lets go
+
