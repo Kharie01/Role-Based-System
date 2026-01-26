@@ -2,7 +2,6 @@ import { Router } from "express";
 import express from "express"
 
 import { validate } from "../middleware/validate.js";
-import { isAdmin } from "../middleware/isAdmin.js";
 import { protect } from "../middleware/protect.js";
 import { loginLimiter } from "../middleware/loginLimiter.js";
 import {createUser, 
@@ -11,30 +10,35 @@ import {createUser,
         getAllUser} from '../controller/userController.js'
 import { registerSchema } from "../validation/user.validation.js";
 import { loginSchema } from "../validation/auth.validation.js";
+import { requirePermission } from "../middleware/authorizePermission.js";
+import { PERMISSIONS } from "../config/permissions.js";
 import { restrictTo } from "../middleware/authorize.js";
 
 const router = express.Router();
 
 router.post(
         "/register", 
-        validate(registerSchema), 
+        validate(registerSchema),
         createUser);
 
 router.post(
         "/login", 
         validate(loginSchema), 
         loginLimiter, 
-        validateUser);
+        validateUser
+        );
 
 router.get(
         "/profile", 
-        protect, 
+        protect,
+        requirePermission(PERMISSIONS.PROFILE_READ), 
         getProfile);
 
 router.get(
         "/users", 
-        protect, 
-        restrictTo("admin"), 
+        protect,
+        restrictTo("admin"),
+        requirePermission(PERMISSIONS.USER_READ), 
         getAllUser);
 
 export default router
