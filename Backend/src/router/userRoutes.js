@@ -7,7 +7,9 @@ import { loginLimiter } from "../middleware/loginLimiter.js";
 import {createUser, 
         validateUser, 
         getProfile, 
-        getAllUser} from '../controller/userController.js'
+        getAllUser,
+        logoutUser} from '../controller/userController.js'
+import { refreshAccessToken } from '../controller/authController.js'
 import { registerSchema } from "../validation/user.validation.js";
 import { loginSchema } from "../validation/auth.validation.js";
 import { requirePermission } from "../middleware/authorizePermission.js";
@@ -32,13 +34,23 @@ router.get(
         "/profile", 
         protect,
         requirePermission(PERMISSIONS.PROFILE_READ), 
-        getProfile);
+        getProfile
+        );
 
 router.get(
         "/users", 
         protect,
         restrictTo("admin"),
         requirePermission(PERMISSIONS.USER_READ), 
-        getAllUser);
+        getAllUser
+        );
+
+router.post(
+        "/logout",
+        logoutUser
+        );
+
+router.post("/refresh-token", 
+        refreshAccessToken);  
 
 export default router

@@ -1,8 +1,11 @@
 import {logInUserServices, createUserServices} from "../services/authServices.js"
 import {getProfileService, getAllUserService} from "../services/userServices.js"
-import jwt from "jsonwebtoken";
+import { getToken } from "../services/tokenServices.js";
+import { generateTokens } from "./tokenRefresh.js";
 
 import catchAsync from "../utils/catchAsync.js";
+import { success } from "zod";
+
 
 
 export const createUser = catchAsync (async (req,res) => {
@@ -19,21 +22,25 @@ export const createUser = catchAsync (async (req,res) => {
 });
 
 export const validateUser = catchAsync(async (req,res) => {
-    let { email, password } = req.body;
-    email = email.trim().toLowerCase();
+    const user = await logInUserServices(
+        req.body.email,
+        req.body.password);
 
-    const user = await logInUserServices(email,password);
-    
-    const token = jwt.sign({id: user._id, role: user.role}, 
-        process.env.JWT_SECRET_KEY,
-        {expiresIn: "1d"});
+    const {accessToken, refreshToken} = await generateTokens(user._id, user.role)
 
-    res.cookie("token", token, {
+    res.cookie("accessToken", accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        maxAge: 24 * 60 * 60 * 1000
-    })
+        maxAge: 15 * 60 * 1000
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+    });
 
     res.status(200).json({
         message: "Login successful",
@@ -59,4 +66,19 @@ export const getAllUser = catchAsync ( async (req, res) => {
         count: users.length,
         users,
     })
+})
+
+export const logoutUser = catchAsync ( async (req, res) => {
+    const token = await getToken(req.cookies.refreshToken)
+    
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
+    if(token) {
+        res.status(200).json({
+            success: "true",
+            message: "Logged out successfully"
+        })
+    }
+
 })
